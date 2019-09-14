@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: disks
+      shell: lsblk -o NAME,SIZE --nodeps
+      register: disks
+
+- hosts: localhost
+  connection: local
+  roles:
+    - {role: 'setup', tags: 'setup'}
+  vars_prompt:
+    - name: disk
+      prompt: "Disks:\n{{hostvars['localhost']['disks'].stdout}}\nSelect"
+      private: no

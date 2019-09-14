@@ -1,0 +1,40 @@
+- name: partition table
+  become: yes
+  parted:
+    device: "/dev/{{disk}}"
+    label: msdos
+
+- name: make partition 1
+  become: yes
+  parted:
+    device: "/dev/{{disk}}"
+    number: 1
+    state: present
+    part_start: "1MiB"
+    part_end: "500MiB"
+    part_type: primary
+
+- name: make partition 2
+  become: yes
+  parted:
+    device: "/dev/{{disk}}"
+    number: 2
+    state: present
+    part_start: "501MiB"
+    part_end: "100%"
+    part_type: primary
+
+- name: format partition 1
+  become: yes
+  filesystem:
+    dev: "/dev/{{disk}}1"
+    fstype: vfat
+    opts: -n boot
+
+- name: format partition 2
+  become: yes
+  filesystem:
+    dev: "/dev/{{disk}}2"
+    fstype: ext4
+    opts: -L arch
+
