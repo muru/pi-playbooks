@@ -1,0 +1,4 @@
+---
+os_url: "http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-3-latest.tar.gz"
+bsdtar: true
+keys_url:  "https://github.com/muru.keys"

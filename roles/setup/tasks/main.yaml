@@ -96,12 +96,45 @@
     state: mounted
     fstab: "{{fstab.path}}"
 
+- name: extract OS archive with bsdtar
+  become: yes
+  when: bsdtar
+  shell: "curl -fsSL '{{ os_url }}' | bsdtar -xpf - -C '{{ mntdir.path }}'; ret=$?; sync; exit $ret"
+  args:
+    warn: false
+
+- name: extract OS archive
+  become: yes
+  when: not bsdtar
+  unarchive:
+    src: "{{ os_url }}"
+    dest: "{{ mntdir.path }}"
+    remote_src: yes
+
+- name: root ssh dir
+  become: yes
+  file:
+    path: "{{mntdir.path}}/root/.ssh/"
+    owner: root
+    group: root
+    state: directory
+    mode: '0700'
+
+- name: add authorized keys to root
+  become: yes
+  get_url:
+    url: "{{ keys_url }}"
+    dest: "{{mntdir.path}}/root/.ssh/authorized_keys"
+    owner: root
+    group: root
+    mode: '0400'
+
 - name: umount parition 1 (boot)
   become: yes
   mount:
     path: "{{mntdir.path}}/boot"
     src: "/dev/{{disk}}1"
-    state: absent
+    state: unmounted
     fstab: "{{fstab.path}}"
 
 - name: umount parition 2 (root)
