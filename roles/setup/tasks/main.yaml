@@ -1,10 +1,30 @@
+- name: disk info
+  become: yes
+  parted:
+    device: "/dev/{{disk}}"
+    unit: MiB
+  register: disk_info
+
+- name: unmount partitions
+  become: yes
+  shell: "if findmnt /dev/{{disk}}{{item.num}}; then umount /dev/{{disk}}{{item.num}}; fi"
+  loop: "{{ disk_info.partitions }}"
+
+- name: remove partitions
+  become: yes
+  parted:
+    device: "/dev/{{disk}}"
+    number: '{{ item.num }}'
+    state: absent
+  loop: '{{ disk_info.partitions }}'
+
 - name: partition table
   become: yes
   parted:
     device: "/dev/{{disk}}"
     label: msdos
 
-- name: make partition 1
+- name: make partition 1 (boot)
   become: yes
   parted:
     device: "/dev/{{disk}}"
@@ -14,7 +34,7 @@
     part_end: "500MiB"
     part_type: primary
 
-- name: make partition 2
+- name: make partition 2 (root)
   become: yes
   parted:
     device: "/dev/{{disk}}"
@@ -24,17 +44,79 @@
     part_end: "100%"
     part_type: primary
 
-- name: format partition 1
+- name: format partition 1 (boot)
   become: yes
   filesystem:
     dev: "/dev/{{disk}}1"
     fstype: vfat
     opts: -n boot
 
-- name: format partition 2
+- name: format partition 2 (root)
   become: yes
   filesystem:
     dev: "/dev/{{disk}}2"
     fstype: ext4
     opts: -L arch
 
+- name: directory for mounting
+  become: yes
+  tempfile:
+    state: directory
+    suffix: mnt
+  register: mntdir
+
+- name: temp fstab
+  become: yes
+  tempfile:
+    state: file
+    suffix: fstab
+  register: fstab
+
+- name: mount parition 2 (root)
+  become: yes
+  mount:
+    path: "{{mntdir.path}}"
+    src: "/dev/{{disk}}2"
+    fstype: ext4
+    state: mounted
+    fstab: "{{fstab.path}}"
+
+- name: boot dir
+  become: yes
+  file:
+    path: "{{mntdir.path}}/boot"
+    state: directory
+
+- name: mount parition 1 (boot)
+  become: yes
+  mount:
+    path: "{{mntdir.path}}/boot"
+    src: "/dev/{{disk}}1"
+    fstype: vfat
+    state: mounted
+    fstab: "{{fstab.path}}"
+
+- name: umount parition 1 (boot)
+  become: yes
+  mount:
+    path: "{{mntdir.path}}/boot"
+    src: "/dev/{{disk}}1"
+    state: absent
+    fstab: "{{fstab.path}}"
+
+- name: umount parition 2 (root)
+  become: yes
+  mount:
+    path: "{{mntdir.path}}"
+    src: "/dev/{{disk}}2"
+    state: absent
+    fstab: "{{fstab.path}}"
+
+- name: cleanup temps
+  become: yes
+  file:
+    path: "{{item.path}}"
+    state: absent
+  loop:
+    - "{{fstab}}"
+    - "{{mntdir}}"
