@@ -33,6 +33,9 @@
     part_start: "1MiB"
     part_end: "500MiB"
     part_type: primary
+    flags:
+      - lba
+      - boot
 
 - name: make partition 2 (root)
   become: yes
