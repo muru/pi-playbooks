@@ -99,10 +99,18 @@
     state: mounted
     fstab: "{{fstab.path}}"
 
+- name: get OS Archive
+  when: bsdtar
+  get_url:
+    url: "{{ os_url }}"
+    dest: "{{ os_dl_dir }}"
+    checksum:  "{{ os_sum_url }}"
+  register: os_dl
+
 - name: extract OS archive with bsdtar
   become: yes
   when: bsdtar
-  shell: "curl -fsSL '{{ os_url }}' | bsdtar -xpf - -C '{{ mntdir.path }}'; ret=$?; sync; exit $ret"
+  shell: "bsdtar -xpf {{ os_dl.dest | quote }} -C {{ mntdir.path | quote }}; ret=$?; sync; exit $ret"
   args:
     warn: false
 

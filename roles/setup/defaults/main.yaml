@@ -1,4 +1,6 @@
 ---
 os_url: "http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-3-latest.tar.gz"
+os_sum_url: "md5:http://tw.mirror.archlinuxarm.org/os/ArchLinuxARM-rpi-3-latest.tar.gz.md5"
+os_dl_dir: "{{ '~/Downloads/Software/OS' | expanduser }}"
 bsdtar: true
 keys_url:  "https://github.com/muru.keys"
