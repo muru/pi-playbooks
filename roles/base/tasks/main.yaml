@@ -1,0 +1,52 @@
+- name: common packages
+  become: yes
+  pacman:
+    name:
+      - base-devel
+      - busybox
+      - docker
+      - git
+      - gvim
+      - htop
+      - pastebinit
+      - perl-rename
+      - pv
+      - rsync
+      - wget
+
+- name: languages
+  become: yes
+  pacman:
+    name:
+      - go
+      - ruby
+      - nodejs
+      - python2
+
+- name: delete old dotfiles
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - .bashrc
+    - .bash_profile
+    - .profile
+
+- name: dev dir
+  file:
+    path: "{{ '~/dev' | expanduser }}"
+    state: directory
+
+- name: dotfiles clone
+  git:
+    repo: "{{ dotfiles }}"
+    dest: "{{ dotfiles_dir | expanduser }}"
+    track_submodules: yes
+    recursive: yes
+    accept_hostkey: yes
+
+- name: dotfiles copy
+  copy:
+    dest: "{{ '~' | expanduser }}"
+    src: "{{ dotfiles_dir | expanduser }}/"
+    remote_src: yes

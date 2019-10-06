@@ -1,0 +1,7 @@
+---
+
+first_user:
+  name: muru
+  shell: /bin/zsh
+  fullname: Murukesh Mohanan
+  keys_url:  "https://github.com/muru.keys"

@@ -1,0 +1,57 @@
+---
+- name: Run the equivalent of "pacman -Syu" as a separate step
+  become: yes
+  pacman:
+    update_cache: yes
+    upgrade: yes
+
+- name: base-devel
+  pacman:
+    name:
+      - base-devel
+
+- name: shells
+  pacman:
+    name:
+      - bash
+      - dash
+      - fish
+      - mksh
+      - tcsh
+      - zsh
+
+- name: set hostname
+  hostname:
+    name: "{{  inventory_hostname }}"
+
+- name: delete default user
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  loop:
+    - alarm
+    - ubuntu
+
+- name: crypt password
+  shell: "openssl passwd -6 -stdin"
+  args:
+    stdin: "{{ first_user_password }}"
+  register: crypt_pass
+
+- name: add standard user
+  user:
+    name: "{{ first_user.name }}"
+    shell: "{{ first_user.shell }}"
+    groups:
+      - adm
+      - wheel
+    append: yes
+    comment: "{{ first_user.fullname or '' }}"
+    password: "{{ crypt_pass.stdout }}"
+
+- name: add authorized_key
+  authorized_key:
+    user: "{{ first_user.name }}"
+    state: present
+    key: "{{ first_user.keys_url }}"

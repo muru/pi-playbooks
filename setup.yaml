@@ -14,3 +14,12 @@
     - name: disk
       prompt: "Disks:\n{{hostvars['localhost']['disks'].stdout}}\nSelect"
       private: no
+
+- hosts: localhost
+  conection: local
+  vars_prompt:
+    - name: pi
+      prompt: "Enter hostnme or IP of Pi"
+  tasks:
+    - name: Init pacman
+      shell: ssh root@"{{ pi }}" 'pacman-key --init; pacman-key --populate archlinuxarm; pacman -Syyu python python-pip'
