@@ -1,0 +1,6 @@
+---
+all:
+  children:
+    pi:
+      hosts:
+        pi.muru.dev

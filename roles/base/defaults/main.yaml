@@ -1,3 +1,4 @@
 ---
 dotfiles: git@github.com:muru/home.git
 dotfiles_dir: '~/dev/home'
+init_dotfiles: false

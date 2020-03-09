@@ -31,11 +31,10 @@
     number: 1
     state: present
     part_start: "1MiB"
-    part_end: "500MiB"
+    part_end: "512MiB"
     part_type: primary
     flags:
       - lba
-      - boot
 
 - name: make partition 2 (root)
   become: yes
@@ -43,7 +42,7 @@
     device: "/dev/{{disk}}"
     number: 2
     state: present
-    part_start: "501MiB"
+    part_start: "513MiB"
     part_end: "100%"
     part_type: primary
 
@@ -52,7 +51,7 @@
   filesystem:
     dev: "/dev/{{disk}}1"
     fstype: vfat
-    opts: -n boot
+    opts: -n boot -F 32
 
 - name: format partition 2 (root)
   become: yes
@@ -100,25 +99,25 @@
     fstab: "{{fstab.path}}"
 
 - name: get OS Archive
-  when: bsdtar
+  when: os.bsdtar
   get_url:
-    url: "{{ os_url }}"
+    url: "{{ os.url }}"
     dest: "{{ os_dl_dir }}"
-    checksum:  "{{ os_sum_url }}"
+    checksum:  "{{ os.sum_url }}"
   register: os_dl
 
 - name: extract OS archive with bsdtar
   become: yes
-  when: bsdtar
+  when: os.bsdtar
   shell: "bsdtar -xpf {{ os_dl.dest | quote }} -C {{ mntdir.path | quote }}; ret=$?; sync; exit $ret"
   args:
     warn: false
 
 - name: extract OS archive
   become: yes
-  when: not bsdtar
+  when: not os.bsdtar
   unarchive:
-    src: "{{ os_url }}"
+    src: "{{ os.url }}"
     dest: "{{ mntdir.path }}"
     remote_src: yes
 
@@ -139,6 +138,48 @@
     owner: root
     group: root
     mode: '0400'
+
+- name: PATH in environment
+  become: yes
+  lineinfile:
+    path: "{{mntdir.path}}/etc/environment"
+    line: "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin"
+
+- name: passwd entry for user
+  become: yes
+  lineinfile:
+    path: "{{mntdir.path}}/etc/passwd"
+    regexp: '^{{os.default_user}}'
+    line: "{{user.name}}:x:1000:1000:{{user.gecos}}:{{user.home}}:{{user.shell}}"
+
+- name: shadow entry for user
+  become: yes
+  lineinfile:
+    path: "{{mntdir.path}}/etc/shadow"
+    regexp: '^{{os.default_user}}'
+    line: "{{user.name}}:{{password | password_hash('sha512', 65534 | random(seed=inventory_hostname) | string)}}::0:99999:7:::"
+
+- name: groups for user
+  become: yes
+  replace:
+    path: "{{mntdir.path}}/etc/group"
+    regexp: "{{os.default_user}}"
+    replace: "{{user.name}}"
+
+- name: home + ssh directory for user
+  become: yes
+  file:
+    path: "{{mntdir.path}}{{user.home}}"
+    state: directory
+    owner: '1000'
+    group: '1000'
+
+- name: user authorized_keys
+  become: yes
+  authorized_key:
+    user: "{{user.name}}"
+    path: "{{mntdir.path}}{{user.home}}/.ssh/authorized_keys"
+    key: "{{ user.keys_url }}"
 
 - name: umount parition 1 (boot)
   become: yes

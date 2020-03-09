@@ -1,7 +1,4 @@
 - hosts: all
   roles:
     - {role: 'first-run', tags: 'first-run'}
-  vars_prompt:
-    - name: first_user_password
-      prompt: "Set password for first user"
-
+  remote_user: root

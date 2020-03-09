@@ -4,14 +4,19 @@
     name:
       - base-devel
       - busybox
+      - byobu
       - docker
+      - fail2ban
       - git
       - gvim
       - htop
+      - jq
       - pastebinit
       - perl-rename
       - pv
       - rsync
+      - screen
+      - tmux
       - wget
 
 - name: languages
@@ -23,21 +28,13 @@
       - nodejs
       - python2
 
-- name: delete old dotfiles
-  file:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - .bashrc
-    - .bash_profile
-    - .profile
-
 - name: dev dir
   file:
     path: "{{ '~/dev' | expanduser }}"
     state: directory
 
 - name: dotfiles clone
+  when: init_dotfiles
   git:
     repo: "{{ dotfiles }}"
     dest: "{{ dotfiles_dir | expanduser }}"
@@ -46,7 +43,44 @@
     accept_hostkey: yes
 
 - name: dotfiles copy
+  when: init_dotfiles
   copy:
     dest: "{{ '~' | expanduser }}"
     src: "{{ dotfiles_dir | expanduser }}/"
     remote_src: yes
+
+- name: sshd_config
+  become: yes
+  template:
+    src: sshd_config
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0600'
+    validate: /usr/sbin/sshd -t -f %s
+    backup: yes
+  notify:
+    - reload sshd
+
+- name: enable fail2ban
+  become: yes
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+- name: generate locales
+  become: yes
+  locale_gen:
+    name: "{{ item }}"
+  loop:
+      - en_GB.UTF-8
+      - en_US.UTF-8
+      - ja_JP.UTF-8
+
+- name: default locale
+  become: yes
+  copy:
+    dest: /etc/locale.conf
+    content: |
+      LANG=en_GB.UTF-8
